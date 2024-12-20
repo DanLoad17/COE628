@@ -1,0 +1,53 @@
+#include <stdio.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+#include <pthread.h>
+#include <sys/stat.h>
+
+void *count(void *);
+
+int globalNumber = 0;
+pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
+
+int main(void) {
+    int i;
+    pthread_t counterThread[5];
+
+    //Create the 5 threads
+    for (i = 0; i < 5; i++) {
+        pthread_create(&counterThread[i], NULL, count, NULL);
+    }
+
+    //Wait for all threads to finish
+    for (i = 0; i < 5; i++) {
+        pthread_join(counterThread[i], NULL);
+    }
+
+    printf("Final value of globalNumber: %d\n", globalNumber);
+
+    return 0;
+}
+
+void *count(void *junk) {
+    int loopCount = 0;
+
+    //Acquire the mutex lock
+    pthread_mutex_lock(&mutex1);
+
+    while (loopCount < 10) {
+        int tmpNumber = globalNumber;
+        printf("counter: %d, Thread: %ld, PID: %d\n", tmpNumber, pthread_self(), getpid());
+        tmpNumber = globalNumber;
+        tmpNumber++;
+        usleep(random() % 2);
+        globalNumber = tmpNumber;
+        loopCount++;
+    }
+
+    //Release the mutex lock
+    pthread_mutex_unlock(&mutex1);
+
+    return NULL;
+}
